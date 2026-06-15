@@ -1,0 +1,68 @@
+{
+  "capturedAt": "2026-06-13T14:17:29.844Z",
+  "prompt": "schema database large context",
+  "reason": "stream_end",
+  "analysis": {
+    "okAckCount": 1,
+    "timeoutCount": 0,
+    "unexpectedAckCount": 0,
+    "timeoutComparisons": []
+  },
+  "serverLog": [
+    {
+      "timestamp": 1781360200137,
+      "type": "USER_MESSAGE",
+      "data": {
+        "content": "schema database large context"
+      },
+      "verdict": "ok"
+    },
+    {
+      "timestamp": 1781360200605,
+      "type": "TOOL_ACK",
+      "data": {
+        "call_id": "tc_3f184838"
+      },
+      "verdict": "ok"
+    }
+  ],
+  "clientEvents": [
+    {
+      "t": 1781360200137,
+      "ms": 41,
+      "type": "client_send",
+      "message": {
+        "type": "USER_MESSAGE",
+        "content": "schema database large context"
+      }
+    },
+    {
+      "t": 1781360200604,
+      "ms": 508,
+      "type": "server_frame",
+      "seq": 10,
+      "messageType": "TOOL_CALL",
+      "call_id": "tc_3f184838",
+      "challenge": null
+    },
+    {
+      "t": 1781360200605,
+      "ms": 509,
+      "type": "client_send",
+      "message": {
+        "type": "TOOL_ACK",
+        "call_id": "tc_3f184838"
+      },
+      "relatedSeq": 10
+    },
+    {
+      "t": 1781360201775,
+      "ms": 1679,
+      "type": "server_frame",
+      "seq": 11,
+      "messageType": "TOOL_RESULT",
+      "call_id": "tc_3f184838",
+      "challenge": null
+    }
+  ]
+}

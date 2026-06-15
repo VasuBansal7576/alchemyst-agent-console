@@ -1,0 +1,111 @@
+{
+  "capturedAt": "2026-06-13T14:17:29.791Z",
+  "prompt": "schema database large context",
+  "reason": "ws_close",
+  "analysis": {
+    "okAckCount": 0,
+    "timeoutCount": 1,
+    "unexpectedAckCount": 1,
+    "timeoutComparisons": [
+      {
+        "callId": "tc_a7a265ec",
+        "serverTimeoutAt": 1781360215885,
+        "firstToolFrameAt": 1781360217339,
+        "ackSentAt": 1781360217339,
+        "frameAfterTimeoutMs": 1454,
+        "ackAfterFrameMs": 0,
+        "ackAfterTimeoutMs": 1454
+      }
+    ]
+  },
+  "sourceEvidence": {
+    "serverToolCallThenWaitForAck": "hiring/June-2026_FullStackAI/agent-server/src/server.ts:336-351",
+    "serverAckTimeout": "hiring/June-2026_FullStackAI/agent-server/src/server.ts:516-527",
+    "chaosMayBufferMessages": "hiring/June-2026_FullStackAI/agent-server/src/chaos.ts:65-80",
+    "clientImmediateAck": "src/workers/protocol-worker.ts:123-134"
+  },
+  "serverLog": [
+    {
+      "timestamp": 1781360210455,
+      "type": "USER_MESSAGE",
+      "data": {
+        "content": "schema database large context"
+      },
+      "verdict": "ok"
+    },
+    {
+      "timestamp": 1781360215885,
+      "type": "TOOL_ACK_TIMEOUT",
+      "data": {
+        "call_id": "tc_a7a265ec"
+      },
+      "verdict": "violation"
+    },
+    {
+      "timestamp": 1781360217339,
+      "type": "TOOL_ACK",
+      "data": {
+        "call_id": "tc_a7a265ec"
+      },
+      "verdict": "unexpected"
+    },
+    {
+      "timestamp": 1781360224455,
+      "type": "PONG",
+      "data": {
+        "echo": "ecea22e4",
+        "latency_ms": 0
+      },
+      "verdict": "ok"
+    }
+  ],
+  "clientEvents": [
+    {
+      "t": 1781360210455,
+      "ms": 42,
+      "type": "client_send",
+      "message": {
+        "type": "USER_MESSAGE",
+        "content": "schema database large context"
+      }
+    },
+    {
+      "t": 1781360217339,
+      "ms": 6926,
+      "type": "server_frame",
+      "seq": 11,
+      "messageType": "TOOL_RESULT",
+      "call_id": "tc_a7a265ec",
+      "challenge": null
+    },
+    {
+      "t": 1781360217339,
+      "ms": 6926,
+      "type": "server_frame",
+      "seq": 10,
+      "messageType": "TOOL_CALL",
+      "call_id": "tc_a7a265ec",
+      "challenge": null
+    },
+    {
+      "t": 1781360217339,
+      "ms": 6926,
+      "type": "client_send",
+      "message": {
+        "type": "TOOL_ACK",
+        "call_id": "tc_a7a265ec"
+      },
+      "relatedSeq": 10
+    },
+    {
+      "t": 1781360224455,
+      "ms": 14042,
+      "type": "client_send",
+      "message": {
+        "type": "PONG",
+        "echo": "ecea22e4"
+      },
+      "relatedSeq": 15
+    }
+  ]
+}

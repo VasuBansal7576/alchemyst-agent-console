@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Console — Implementation Spec for Codex</title>
+<style>
+  :root {
+    --bg: #0f0f10;
+    --bg2: #1a1a1c;
+    --bg3: #242428;
+    --text: #e2e2de;
+    --muted: #888884;
+    --accent: #f0a500;
+    --blue: #4a9eff;
+    --green: #4caf7d;
+    --coral: #e07060;
+    --purple: #9b8af0;
+    --teal: #3cc8a0;
+    --border: rgba(255,255,255,0.07);
+    --code-bg: #16161a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 15px;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 2rem 1.5rem; }
+  h1 { font-size: 1.9rem; color: var(--accent); margin-bottom: 0.4rem; font-weight: 700; }
+  h2 { font-size: 1.25rem; color: var(--text); margin: 2.8rem 0 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; font-weight: 600; }
+  h3 { font-size: 1.05rem; color: var(--blue); margin: 1.8rem 0 0.6rem; font-weight: 600; }
+  h4 { font-size: 0.85rem; color: var(--muted); margin: 1.2rem 0 0.4rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }
+  p { margin-bottom: 0.8rem; }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.84rem;
+    background: var(--code-bg);
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+    color: var(--teal);
+    border: 1px solid var(--border);
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 1.1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 0.8rem 0 1.2rem;
+    border-left: 3px solid var(--accent);
+    font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+    font-size: 0.81rem;
+    line-height: 1.65;
+    color: #c8c8c4;
+    white-space: pre;
+  }
+  .box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+  }
+  .box-accent { border-left: 3px solid var(--accent); }
+  .box-blue   { border-left: 3px solid var(--blue); }
+  .box-green  { border-left: 3px solid var(--green); }
+  .box-coral  { border-left: 3px solid var(--coral); }
+  .box-purple { border-left: 3px solid var(--purple); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.2rem;
+    font-size: 0.87rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.5rem 0.9rem;
+    background: var(--bg3);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  tr:last-child td { border-bottom: none; }
+  ul, ol { padding-left: 1.5rem; margin: 0.5rem 0 0.8rem; }
+  li { margin-bottom: 0.35rem; }
+  .nav {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 2.5rem;
+  }
+  .nav-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; margin-bottom: 0.8rem; }
+  .nav ol { column-count: 2; column-gap: 2rem; padding-left: 1.2rem; }
+  .nav li { font-size: 0.88rem; margin-bottom: 0.45rem; }
+  .state-box {
+    background: var(--code-bg);
+    border-radius: 8px;
+    padding: 1.1rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 1.9;
+    overflow-x: auto;
+    white-space: pre;
+    color: #c8c8c4;
+    margin: 0.8rem 0 1.2rem;
+    border: 1px solid var(--border);
+  }
+  .bug {
+    background: rgba(224,112,96,0.07);
+    border: 1px solid rgba(224,112,96,0.22);
+    border-left: 3px solid var(--coral);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin: 0.9rem 0;
+  }
+  .bug-title { color: var(--coral); font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem; }
+  .pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    padding: 0.12em 0.55em;
+    border-radius: 99px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+  }
+  .pill-critical { background: rgba(224,112,96,0.18); color: var(--coral); }
+  .pill-new      { background: rgba(76,175,125,0.18); color: var(--green); }
+  .pill-warn     { background: rgba(240,165,0,0.18); color: var(--accent); }
+  .pill-info     { background: rgba(74,158,255,0.18); color: var(--blue); }
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem;
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .meta { color: var(--muted); font-size: 0.88rem; margin-top: 0.3rem; }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { padding: 0.3rem 0; }
+  .checklist li::before { content: '☐  '; color: var(--muted); font-size: 1rem; }
+  .step-num { color: var(--accent); font-weight: 700; }
+  strong { color: var(--text); font-weight: 600; }
+  em { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Agent Console — Implementation Spec</h1>
+  <p class="meta">Assignment: Full Stack AI Engineer · Alchemyst AI</p>
+  <p class="meta">Architecture: <strong style="color:var(--accent)">One Log, Three Views</strong> · Prepared for Codex · June 2026</p>
+  <p class="meta" style="margin-top:0.6rem;">
+    <span class="pill pill-new">New</span> Event Log as single source of truth &nbsp;
+    <span class="pill pill-new">New</span> Sliding dedup window (time-based) &nbsp;
+    <span class="pill pill-new">New</span> Rendering orchestrator &nbsp;
+    <span class="pill pill-warn">Fixed</span> sessionStorage bug in workers &nbsp;
+    <span class="pill pill-warn">Fixed</span> O(n) evict()
+  </p>
+</header>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-title">Table of Contents</div>
+  <ol>
+    <li><a href="#philosophy">Core Philosophy</a></li>
+    <li><a href="#architecture">Architecture Diagram</a></li>
+    <li><a href="#state-machines">State Machines</a></li>
+    <li><a href="#protocol">Protocol Reference</a></li>
+    <li><a href="#layers">Implementation Layers</a></li>
+    <li><a href="#types">TypeScript Types</a></li>
+    <li><a href="#bugs">Critical Bugs to Avoid</a></li>
+    <li><a href="#order">Build Order</a></li>
+    <li><a href="#decisions">DECISIONS.md Template</a></li>
+  </ol>
+</div>
+
+<!-- ===== 1. PHILOSOPHY ===== -->
+<section id="philosophy">
+  <h2>1. Core Philosophy</h2>
+  <div class="box box-accent">
+    <p><strong>Event sourcing applied to the UI.</strong> The only mutable state is a single append-only, immutable, seq-ordered event log living on the main thread. Chat, timeline, and context are pure projections (derived views) of this log. Replayed events from RESUME after reconnection are just more log entries — the stitching problem disappears entirely.</p>
+    <p style="margin-bottom:0"><strong>Key invariant:</strong> The log is the only thing that mutates. Everything else is a pure function of the log.</p>
+  </div>
+  <p><strong>Why this beats scattered state:</strong> The competing approach maintains three separate stateful systems — chat state, timeline state, context state — that all need to stay in sync when a replayed event arrives. Miss one, you have an inconsistent DOM. With one log, replaying events is just appending. All views update automatically.</p>
+  <p><strong>Validated by:</strong> Martin Fowler's event sourcing pattern, Redux single state tree, GGPO game netcode deterministic replay, LMAX Disruptor ring buffer (HFT dashboards), and the arxiv paper on AI-Assisted Adaptive Rendering for security telemetry UIs (2602.01671).</p>
+</section>
+
+<!-- ===== 2. ARCHITECTURE DIAGRAM ===== -->
+<section id="architecture">
+  <h2>2. Architecture Diagram</h2>
+  <div class="diagram-wrap">
+    <svg width="100%" viewBox="0 0 860 660" style="min-width:640px;display:block;" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#666" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- MAIN THREAD boundary -->
+      <rect x="14" y="14" width="832" height="316" rx="12" fill="none" stroke="rgba(74,158,255,0.18)" stroke-width="1" stroke-dasharray="8 5"/>
+      <text x="30" y="34" font-family="system-ui,sans-serif" font-size="11" fill="rgba(74,158,255,0.6)" font-weight="600">MAIN THREAD</text>
+
+      <!-- WEB WORKER boundary -->
+      <rect x="14" y="346" width="832" height="300" rx="12" fill="none" stroke="rgba(76,175,125,0.18)" stroke-width="1" stroke-dasharray="8 5"/>
+      <text x="30" y="366" font-family="system-ui,sans-serif" font-size="11" fill="rgba(76,175,125,0.6)" font-weight="600">WEB WORKER</text>
+
+      <!-- === MAIN THREAD === -->
+
+      <!-- Event Log (amber, center) -->
+      <rect x="260" y="54" width="340" height="68" rx="10" fill="rgba(240,165,0,0.1)" stroke="#f0a500" stroke-width="1.5"/>
+      <text x="430" y="82" text-anchor="middle" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#f0a500">Event Log</text>
+      <text x="430" y="104" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">single source of truth · append-only · immutable · seq-ordered</text>
+
+      <!-- Chat View -->
+      <rect x="34" y="194" width="198" height="66" rx="8" fill="rgba(60,200,160,0.07)" stroke="#3cc8a0" stroke-width="1"/>
+      <text x="133" y="220" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#3cc8a0">Chat View</text>
+      <text x="133" y="242" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">direct DOM · tool cards</text>
+
+      <!-- Timeline View -->
+      <rect x="331" y="194" width="198" height="66" rx="8" fill="rgba(60,200,160,0.07)" stroke="#3cc8a0" stroke-width="1"/>
+      <text x="430" y="220" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#3cc8a0">Timeline View</text>
+      <text x="430" y="242" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">virtualized · grouped</text>
+
+      <!-- Context View -->
+      <rect x="628" y="194" width="198" height="66" rx="8" fill="rgba(60,200,160,0.07)" stroke="#3cc8a0" stroke-width="1"/>
+      <text x="727" y="220" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#3cc8a0">Context View</text>
+      <text x="727" y="242" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">patch diff · scrubber</text>
+
+      <!-- Rendering Orchestrator -->
+      <rect x="34" y="280" width="792" height="30" rx="7" fill="rgba(76,175,125,0.08)" stroke="#4caf7d" stroke-width="1"/>
+      <text x="430" y="300" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="600" fill="#4caf7d">Rendering Orchestrator — batches to 60fps · pauses when user scrolls up · activity-aware</text>
+
+      <!-- Event Log → Views (L-bends) -->
+      <path d="M 320 122 L 133 122 L 133 194" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 430 122 L 430 194" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 540 122 L 727 122 L 727 194" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+
+      <!-- Views → Orchestrator -->
+      <path d="M 133 260 L 133 280" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 430 260 L 430 280" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 727 260 L 727 280" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+
+      <!-- postMessage label between threads -->
+      <text x="430" y="336" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#555">↑ render commands via postMessage ↑</text>
+
+      <!-- === WEB WORKER === -->
+
+      <!-- WebSocket -->
+      <rect x="34" y="384" width="170" height="62" rx="8" fill="rgba(155,138,240,0.08)" stroke="#9b8af0" stroke-width="1"/>
+      <text x="119" y="408" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#9b8af0">WebSocket</text>
+      <text x="119" y="428" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">JSON text frames</text>
+
+      <!-- Priority Queue -->
+      <rect x="228" y="384" width="170" height="62" rx="8" fill="rgba(240,165,0,0.07)" stroke="#f0a500" stroke-width="1"/>
+      <text x="313" y="408" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#f0a500">Priority Queue</text>
+      <text x="313" y="428" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">PONG · TOOL_ACK first</text>
+
+      <!-- Reorder Buffer -->
+      <rect x="422" y="384" width="170" height="62" rx="8" fill="rgba(74,158,255,0.07)" stroke="#4a9eff" stroke-width="1"/>
+      <text x="507" y="408" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#4a9eff">Reorder Buffer</text>
+      <text x="507" y="428" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">Map + MinHeap, O(1)</text>
+
+      <!-- Sliding Dedup Window -->
+      <rect x="616" y="384" width="214" height="62" rx="8" fill="rgba(224,112,96,0.07)" stroke="#e07060" stroke-width="1"/>
+      <text x="723" y="408" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#e07060">Sliding Dedup Window</text>
+      <text x="723" y="428" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">time-based · bounded</text>
+
+      <!-- Per-Stream State Machines -->
+      <rect x="34" y="474" width="792" height="58" rx="8" fill="rgba(74,158,255,0.04)" stroke="rgba(74,158,255,0.25)" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="430" y="498" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#4a9eff">Per-Stream State Machines</text>
+      <text x="430" y="520" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">IDLE → STREAMING → TOOL_CALL_PENDING → STREAMING → COMPLETE · Map&lt;streamId, StateMachine&gt;</text>
+
+      <!-- Connection State Machine -->
+      <rect x="34" y="550" width="792" height="52" rx="8" fill="rgba(76,175,125,0.04)" stroke="rgba(76,175,125,0.25)" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="430" y="574" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#4caf7d">Connection State Machine</text>
+      <text x="430" y="594" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#888">DISCONNECTED → CONNECTING → AWAITING_HELLO → RESUMING → CONNECTED ↔ RECONNECTING</text>
+
+      <!-- Worker arrows -->
+      <path d="M 204 415 L 228 415" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 398 415 L 422 415" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 592 415 L 616 415" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 430 446 L 430 474" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+      <path d="M 430 532 L 430 550" fill="none" stroke="#555" stroke-width="0.9" marker-end="url(#arrowhead)"/>
+
+      <!-- postMessage up to Event Log (dashed amber) -->
+      <path d="M 760 474 L 760 318 L 600 318 L 600 122" fill="none" stroke="rgba(240,165,0,0.3)" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#arrowhead)"/>
+      <text x="772" y="396" font-family="system-ui,sans-serif" font-size="10" fill="rgba(240,165,0,0.5)">postMessage</text>
+    </svg>
+  </div>
+
+  <div class="box box-accent">
+    <strong>Reading the diagram:</strong> Everything in the Web Worker runs off the main thread. The worker produces <em>render commands</em> (not state) via postMessage. The main thread appends those to the Event Log. The three views are derived (subscribed) from the Event Log. The Rendering Orchestrator controls when the DOM is actually painted — never more than once per animation frame, never when the user is scrolled away from the live area.
+  </div>
+</section>
+
+<!-- ===== 3. STATE MACHINES ===== -->
+<section id="state-machines">
+  <h2>3. State Machines</h2>
+
+  <h3>WebSocket Connection State Machine</h3>
+  <div class="state-box">DISCONNECTED ──(user sends message OR auto-retry)──────────────► CONNECTING
+CONNECTING    ──(WebSocket.onopen fires)────────────────────────────► AWAITING_HELLO
+CONNECTING    ──(connection failed)───────────────────────────────► DISCONNECTED  [apply backoff]
+AWAITING_HELLO──(first connection, no prior seq)──────────────────► CONNECTED
+AWAITING_HELLO──(has lastRenderedSeq > 0)─────────────────────────► RESUMING      [send RESUME first]
+RESUMING      ──(received message with seq > lastRenderedSeq)─────► CONNECTED     [replay done]
+CONNECTED     ──(first TOKEN for a stream_id)─────────────────────► STREAMING
+STREAMING     ──(STREAM_END for all active streams)───────────────► CONNECTED
+CONNECTED     ──(WebSocket drop / heartbeat timeout)──────────────► RECONNECTING
+RECONNECTING  ──(begin backoff)──────────────────────────────────► DISCONNECTED
+
+INVARIANTS (compiler-enforced with discriminated unions):
+  • RESUME is sent ONLY in AWAITING_HELLO state — first message, before anything else
+  • USER_MESSAGE is sent ONLY in CONNECTED or STREAMING states
+  • lastRenderedSeq advances ONLY in CONNECTED or STREAMING states
+  • Jittered backoff: delay = min(500 * 2^attempt, 10000) * (1 + 0.3 * Math.random())</div>
+
+  <h3>Per-Stream State Machine (one instance per stream_id)</h3>
+  <div class="state-box">IDLE             ──(first TOKEN for this stream_id)─────────────► STREAMING
+STREAMING        ──(TOOL_CALL arrives)────────────────────────────► TOOL_CALL_PENDING
+TOOL_CALL_PENDING──(TOOL_ACK sent immediately, within 2s)──────────► [waiting for TOOL_RESULT]
+[waiting]        ──(TOOL_RESULT arrives)──────────────────────────► STREAMING      [resume tokens]
+STREAMING        ──(another TOOL_CALL)───────────────────────────► TOOL_CALL_PENDING [stacked]
+STREAMING        ──(STREAM_END)───────────────────────────────────► COMPLETE
+
+INVARIANTS:
+  • TOOL_ACK sent BEFORE rendering the tool card (priority queue)
+  • Text node is frozen at TOOL_CALL moment — frozenLength recorded, never changes
+  • Tool cards stack in DOM: CALL1 → RESULT1 → CALL2 → RESULT2 (never overwrite each other)
+  • streamMachines = new Map&lt;string, StreamStateMachine&gt;() — NOT a global machine
+  • If a TOOL_CALL arrives while already in TOOL_CALL_PENDING (rapid tool calls in chaos):
+    buffer the second TOOL_CALL, process after first TOOL_RESULT arrives</div>
+
+  <h3>TypeScript Types for State Machines</h3>
+  <pre>type ConnectionState =
+  | { type: 'DISCONNECTED'; retryCount: number; nextRetryAt: number }
+  | { type: 'CONNECTING'; attemptNumber: number }
+  | { type: 'AWAITING_HELLO' }
+  | { type: 'RESUMING'; lastSeq: number }
+  | { type: 'CONNECTED' }
+  | { type: 'STREAMING'; activeStreamIds: Set&lt;string&gt; }
+  | { type: 'RECONNECTING'; reason: 'DROP' | 'ERROR' | 'HEARTBEAT_TIMEOUT' };
+
+type StreamState =
+  | { type: 'IDLE' }
+  | { type: 'STREAMING'; textNodeRef: Text; frozenLength: number }
+  | { type: 'TOOL_CALL_PENDING'; callId: string; textNodeRef: Text; frozenLength: number; pendingQueue: ToolCallEvent[] }
+  | { type: 'COMPLETE' };</pre>
+</section>
+
+<!-- ===== 4. PROTOCOL REFERENCE ===== -->
+<section id="protocol">
+  <h2>4. Protocol Reference</h2>
+
+  <h3>Client → Server Messages</h3>
+  <table>
+    <tr><th>Type</th><th>Fields</th><th>When</th><th>Priority</th></tr>
+    <tr><td><code>USER_MESSAGE</code></td><td><code>content: string</code></td><td>User submits. CONNECTED or STREAMING state only.</td><td>Normal</td></tr>
+    <tr><td><code>PONG</code></td><td><code>echo: string</code> (verbatim challenge — empty string if challenge is empty)</td><td>Within 3s of PING. Empty challenge → send empty echo, do not crash.</td><td><strong style="color:var(--coral)">HIGH — priority queue</strong></td></tr>
+    <tr><td><code>RESUME</code></td><td><code>last_seq: number</code> (lastRenderedSeq, not lastReceivedSeq)</td><td>First message on reconnection. AWAITING_HELLO state only.</td><td><strong style="color:var(--coral)">HIGH — first message always</strong></td></tr>
+    <tr><td><code>TOOL_ACK</code></td><td><code>call_id: string</code></td><td>Within 2s of TOOL_CALL. Before rendering card. Server waits 5s max.</td><td><strong style="color:var(--coral)">HIGH — priority queue</strong></td></tr>
+  </table>
+
+  <h3>Server → Client Messages</h3>
+  <table>
+    <tr><th>Type</th><th>Key Fields</th><th>Required Action</th></tr>
+    <tr><td><code>TOKEN</code></td><td>seq, text, stream_id</td><td>Route to TextBuffer for this stream_id. Append in seq order.</td></tr>
+    <tr><td><code>TOOL_CALL</code></td><td>seq, call_id, tool_name, args, stream_id</td><td>1. Send TOOL_ACK (priority). 2. Freeze stream at current length. 3. Render tool card below frozen text.</td></tr>
+    <tr><td><code>TOOL_RESULT</code></td><td>seq, call_id, result, stream_id</td><td>Update tool card with result. Resume token streaming for stream_id.</td></tr>
+    <tr><td><code>CONTEXT_SNAPSHOT</code></td><td>seq, context_id, data</td><td>Compute RFC 6902 patch vs previous snapshot. Update context panel. Handle 500KB+ without freezing.</td></tr>
+    <tr><td><code>PING</code></td><td>seq, challenge</td><td>Send PONG immediately. Handle empty challenge (send empty echo). Do not crash.</td></tr>
+    <tr><td><code>STREAM_END</code></td><td>seq, stream_id</td><td>Transition stream machine to COMPLETE. Remove from active streams.</td></tr>
+    <tr><td><code>ERROR</code></td><td>seq, code, message</td><td>Display in timeline. Do not crash. Do not close connection.</td></tr>
+  </table>
+
+  <div class="box box-accent">
+    <h4>The Two Seq Variables — Do Not Confuse These</h4>
+    <ul>
+      <li><strong>lastReceivedSeq</strong> — updated when a message exits the reorder buffer (worker has it)</li>
+      <li><strong>lastRenderedSeq</strong> — updated when the rendering orchestrator commits to DOM (main thread has it)</li>
+      <li><strong>RESUME sends lastRenderedSeq</strong>, not lastReceivedSeq. The /log endpoint verifies this. Getting it wrong means replaying messages that were already painted, causing visible duplication.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== 5. IMPLEMENTATION LAYERS ===== -->
+<section id="layers">
+  <h2>5. Implementation Layers (with rationale)</h2>
+
+  <h3>Layer 0 — WebSocket to Worker (text frames)</h3>
+  <div class="box box-purple">
+    <p><strong>Pattern:</strong> The provided agent-server sends JSON text frames via <code>ws.send(JSON.stringify(message))</code>. On <code>onmessage</code>, the main thread forwards <code>event.data</code> to the worker. If a binary frame ever appears, handle <code>ArrayBuffer</code> as a fallback and transfer it via <code>worker.postMessage(buffer, [buffer])</code>.</p>
+    <p><strong>Why:</strong> <code>JSON.parse</code> on the main thread blocks rendering. In chaos burst mode (50 messages after a latency spike), synchronous JSON parsing stalls the render loop. The main thread does nothing except pipe frame payloads.</p>
+    <p><strong>Worker decodes:</strong> If payload is a string, parse it directly with <code>JSON.parse(payload)</code>. If payload is an <code>ArrayBuffer</code>, decode with <code>new TextDecoder().decode(buffer)</code> first. All parsing stays off-main-thread.</p>
+  </div>
+
+  <h3>Layer 1 — Priority Queue (Worker)</h3>
+  <div class="box box-blue">
+    <p>Two queues, processed in this order every tick:</p>
+    <ol>
+      <li><strong>Priority queue:</strong> PONG responses, TOOL_ACK messages, RESUME — drained fully first.</li>
+      <li><strong>Normal queue:</strong> Everything else — processed in batches of max 10 per tick to avoid starving priority queue.</li>
+    </ol>
+    <p><strong>Critical:</strong> Three missed PONGs = server terminates connection. If PONG is blocked behind 50 queued token messages, the connection dies during chaos burst mode. Priority queue prevents this.</p>
+  </div>
+
+  <h3>Layer 2 — Reorder Buffer (Worker)</h3>
+  <div class="box box-blue">
+    <p><strong>Hybrid: Map (O(1) lookup) + MinHeap (O(log n) out-of-order tracking)</strong></p>
+    <ul>
+      <li><strong>Fast path (normal mode, 95% of messages):</strong> <code>msg.seq === expectedSeq</code> → return immediately, drain buffer of any buffered sequentials. <strong>O(1), heap never touched.</strong></li>
+      <li><strong>Slow path (chaos mode):</strong> <code>msg.seq > expectedSeq</code> → store in Map, push seq to heap. O(log n).</li>
+      <li><strong>Dedup:</strong> <code>msg.seq &lt; expectedSeq</code> → already processed (late duplicate or replay). Drop silently.</li>
+    </ul>
+    <p><strong>Gap detection:</strong> Track p99 of inter-message latency intervals. If buffer has future seqs but expected seq hasn't arrived for 3× p99, accept the gap. Insert synthetic <code>GAP_DETECTED</code> log entry (visible in timeline). Continue. This is the correct behavior — ghost message makes the transport failure visible to evaluators.</p>
+  </div>
+
+  <h3>Layer 3 — Sliding Dedup Window (Worker)</h3>
+  <div class="box box-blue">
+    <p><span class="pill pill-new">New</span> <strong>Time-based, not count-based.</strong> Keep entries from the last 30 seconds. Evict older ones.</p>
+    <p><strong>Data structure:</strong> Two parallel structures — a <code>entries</code> deque (for O(1) front-removal during eviction) and a <code>seqSet: Set&lt;number&gt;</code> (for O(1) lookup). Both updated together.</p>
+    <p><strong>Why time-based beats count-based:</strong> At 30 events/sec, a count window of 1000 covers only 33 seconds. At 1 event/sec, it covers 1000 seconds of memory. Time-based is always proportional to actual session time.</p>
+    <p><strong>Memory bound:</strong> 30 events/sec × 30 sec = 900 entries × ~50 bytes ≈ 45KB. Trivial.</p>
+    <p><span class="pill pill-warn">Important</span> <strong>Persistence:</strong> Workers cannot access <code>sessionStorage</code>. Persist via postMessage to main thread (see Bug #1). Main thread stores last 100 seqs in sessionStorage, passes back on worker init.</p>
+  </div>
+
+  <h3>Layer 4 — Per-Stream State Machines (Worker)</h3>
+  <div class="box box-blue">
+    <p><code>const streamMachines = new Map&lt;string, StreamStateMachine&gt;()</code>. One machine per <code>stream_id</code>.</p>
+    <p>Each stream has its own <strong>TextBuffer</strong> — handles out-of-order token insertion within a stream. When seq 5 arrives before seq 3: seq 5 → buffer. When seq 3 arrives: render 3, check 4 (absent, stop), render 5. User never sees disorder within a stream.</p>
+    <p>TypeScript discriminated unions make illegal states (STREAMING + TOOL_CALL_PENDING simultaneously) a compile-time error, not a runtime bug.</p>
+  </div>
+
+  <h3>Layer 5 — Event Log (Main Thread)</h3>
+  <div class="box box-accent">
+    <p>Append-only <code>LogEntry[]</code> array. Never mutated after append. Receives <code>LogEntry</code> objects from worker via postMessage.</p>
+    <p>When replayed events arrive after RESUME: they are deduplicated by the worker's sliding window, so only genuinely new entries reach the log. The log grows monotonically. All views subscribe to log appends and re-derive themselves. Reconnection is trivially handled — no special "stitch" logic needed.</p>
+  </div>
+
+  <h3>Layer 6 — Three Derived Views (Main Thread)</h3>
+  <div class="box box-green">
+    <p><strong>Chat View:</strong> Filters log for TOKEN, TOOL_CALL, TOOL_RESULT, STREAM_END. Uses <code>textNode.appendData(text)</code> for token appends — direct DOM mutation, bypasses React reconciliation entirely. React only re-renders when tool card state changes (structural changes). One text node per stream_id.</p>
+    <p><strong>Timeline View:</strong> Subscribes to all log entries. Uses <code>@tanstack/react-virtual</code> for virtualization. Groups consecutive tokens into expandable rows showing "Streamed N tokens (Xs)". TOOL_CALL and TOOL_RESULT rows are visually linked by call_id. Only last row re-renders on each append (immutable structure sharing via Immer or plain reference equality).</p>
+    <p><strong>Context View:</strong> Filters log for CONTEXT_SNAPSHOT. Computes RFC 6902 JSON patch between consecutive snapshots for the same context_id. Renders as virtualized tree (only visible nodes in DOM). History scrubber applies inverse patches to step backward through snapshot history. For 500KB+ snapshots: use lazy tree expansion — compute and render only expanded nodes.</p>
+  </div>
+
+  <h3>Layer 7 — Rendering Orchestrator (Main Thread)</h3>
+  <div class="box box-green">
+    <p><span class="pill pill-new">New — from arxiv 2602.01671</span> Two concerns in one class:</p>
+    <ul>
+      <li><strong>Backpressure:</strong> Batch all render commands received between animation frames into one <code>requestAnimationFrame</code> callback. 50 tokens → 1 DOM mutation. 50 context patches → 1 tree re-render.</li>
+      <li><strong>Activity awareness:</strong> When user is scrolled up (reading old messages), throttle live updates to 500ms intervals. When user returns to bottom — flush immediately and resume 60fps. Also handles: <code>visibilitychange</code> (tab hidden → throttle), window blur → throttle.</li>
+    </ul>
+    <p>Batch token appends by stream_id before applying. Never concatenate tokens from different stream_ids into the same text node.</p>
+  </div>
+</section>
+
+<!-- ===== 6. TYPES ===== -->
+<section id="types">
+  <h2>6. TypeScript Types (strict mode)</h2>
+  <pre>// All types use strict mode — no 'any' outside escape-hatch.ts
+
+// ─── Protocol layer (server messages) ──────────────────────────────────────
+interface BaseMessage { seq: number; }
+
+interface TokenMsg       extends BaseMessage { type: 'TOKEN';            stream_id: string; text: string; }
+interface ToolCallMsg    extends BaseMessage { type: 'TOOL_CALL';        stream_id: string; call_id: string; tool_name: string; args: Record&lt;string, unknown&gt;; }
+interface ToolResultMsg  extends BaseMessage { type: 'TOOL_RESULT';      stream_id: string; call_id: string; result: Record&lt;string, unknown&gt;; }
+interface ContextSnapMsg extends BaseMessage { type: 'CONTEXT_SNAPSHOT'; context_id: string; data: Record&lt;string, unknown&gt;; }
+interface PingMsg        extends BaseMessage { type: 'PING';             challenge: string; }
+interface StreamEndMsg   extends BaseMessage { type: 'STREAM_END';       stream_id: string; }
+interface ErrorMsg       extends BaseMessage { type: 'ERROR';            code: string; message: string; }
+
+type ProtocolMessage = TokenMsg | ToolCallMsg | ToolResultMsg | ContextSnapMsg | PingMsg | StreamEndMsg | ErrorMsg;
+
+// ─── Event Log entries (what worker sends to main thread) ──────────────────
+type LogEntry =
+  | { type: 'TOKEN';            seq: number; streamId: string; text: string;                            ts: number }
+  | { type: 'TOOL_CALL';        seq: number; streamId: string; callId: string; toolName: string; args: Record&lt;string, unknown&gt;; ts: number }
+  | { type: 'TOOL_RESULT';      seq: number; streamId: string; callId: string; result: Record&lt;string, unknown&gt;; ts: number }
+  | { type: 'CONTEXT_SNAPSHOT'; seq: number; contextId: string; data: Record&lt;string, unknown&gt;;          ts: number }
+  | { type: 'STREAM_END';       seq: number; streamId: string;                                          ts: number }
+  | { type: 'ERROR';            seq: number; code: string; message: string;                             ts: number }
+  | { type: 'PING';             seq: number; challenge: string;                                         ts: number }
+  | { type: 'GAP_DETECTED';     missingSeq: number;                                                     ts: number };
+
+// ─── Render commands (worker → orchestrator) ───────────────────────────────
+type RenderCommand =
+  | { type: 'APPEND_TOKEN';     streamId: string; text: string }
+  | { type: 'TOOL_CALL';        streamId: string; callId: string; toolName: string; args: Record&lt;string, unknown&gt; }
+  | { type: 'TOOL_RESULT';      streamId: string; callId: string; result: Record&lt;string, unknown&gt; }
+  | { type: 'STREAM_END';       streamId: string }
+  | { type: 'CONTEXT_PATCH';    contextId: string; patch: JsonPatch[] }
+  | { type: 'LOG_ENTRY';        entry: LogEntry }
+  | { type: 'CONN_STATE';       state: ConnectionState };
+
+// ─── Connection state machine ──────────────────────────────────────────────
+type ConnectionState =
+  | { type: 'DISCONNECTED';   retryCount: number; nextRetryAt: number }
+  | { type: 'CONNECTING';     attemptNumber: number }
+  | { type: 'AWAITING_HELLO' }
+  | { type: 'RESUMING';       lastSeq: number }
+  | { type: 'CONNECTED' }
+  | { type: 'STREAMING';      activeStreamIds: Set&lt;string&gt; }
+  | { type: 'RECONNECTING';   reason: 'DROP' | 'ERROR' | 'HEARTBEAT_TIMEOUT' };
+
+// ─── Per-stream state machine ──────────────────────────────────────────────
+type StreamState =
+  | { type: 'IDLE' }
+  | { type: 'STREAMING';          textNodeRef: Text; frozenLength: number }
+  | { type: 'TOOL_CALL_PENDING';  callId: string; textNodeRef: Text; frozenLength: number; pendingQueue: ToolCallMsg[] }
+  | { type: 'COMPLETE' };
+
+// ─── Reorder buffer ────────────────────────────────────────────────────────
+interface ReorderBuffer {
+  readonly expectedSeq: number;
+  insert(msg: ProtocolMessage): ProtocolMessage[];  // returns messages ready to process
+}
+
+// ─── JSON Patch (RFC 6902) ─────────────────────────────────────────────────
+type JsonPatch =
+  | { op: 'add';     path: string; value: unknown }
+  | { op: 'remove';  path: string }
+  | { op: 'replace'; path: string; value: unknown };</pre>
+</section>
+
+<!-- ===== 7. CRITICAL BUGS ===== -->
+<section id="bugs">
+  <h2>7. Critical Bugs to Avoid</h2>
+  <p>These bugs will be caught by the <code>/log</code> endpoint verification or visible in chaos mode recording.</p>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 1 — sessionStorage inside a Web Worker</div>
+    <p>Workers have no access to <code>window.sessionStorage</code>. Any call throws <code>ReferenceError: sessionStorage is not defined</code> immediately on worker init.</p>
+    <p><strong>Fix:</strong> Persistence is a two-message handshake. On worker startup, main thread reads sessionStorage and sends saved seqs via <code>worker.postMessage({ type: 'INIT_DEDUP', seqs: savedSeqs })</code>. When dedup window advances, worker sends <code>{ type: 'PERSIST_SEQS', seqs: [...] }</code> back to main thread, which writes to sessionStorage.</p>
+  </div>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 2 — array.shift() in evict() is O(n)</div>
+    <p>Using a plain array with <code>shift()</code> to remove from the front re-indexes every remaining element. For a 900-entry dedup window, every eviction moves 900 pointers.</p>
+    <p><strong>Fix:</strong> Track a head pointer instead of shifting. Increment <code>head</code> to evict from front. The array grows but wraps (circular buffer) or is periodically compacted when head passes a threshold. O(1) eviction.</p>
+  </div>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 3 — Batching tokens across stream_ids</div>
+    <p>Collecting all token render commands and doing <code>tokens.map(t => t.text).join('')</code> then appending to one text node mixes tokens from stream S1 and S2 into the same text node.</p>
+    <p><strong>Fix:</strong> Group token batches by <code>streamId</code> before applying. Each stream_id has its own text node. <code>Map&lt;streamId, Text&gt;</code>. Batch within a stream, never across streams.</p>
+  </div>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 4 — RESUME sends lastReceivedSeq instead of lastRenderedSeq</div>
+    <p>Many implementations track only one number. After a drop, RESUME from "last received" includes messages received but not yet painted. Server won't replay those — they arrive as visual gaps.</p>
+    <p><strong>Fix:</strong> Two counters. <code>lastReceivedSeq</code> updated in worker. <code>lastRenderedSeq</code> updated in rendering orchestrator after DOM commit. RESUME sends <code>lastRenderedSeq</code>. The <code>/log</code> endpoint will catch this.</p>
+  </div>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 5 — TOOL_ACK not in priority queue</div>
+    <p>Server waits 5 seconds for TOOL_ACK (client target: 2 seconds). Under chaos burst mode, TOOL_ACK stuck behind 50 queued token messages could miss the window. Server logs a protocol violation.</p>
+    <p><strong>Fix:</strong> TOOL_ACK is sent in the priority queue alongside PONG, before any normal queue processing in the same tick.</p>
+  </div>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 6 — Global state machine (not per-stream)</div>
+    <p>A single global <code>isStreaming</code> flag collapses when chaos mode sends overlapping stream_ids. Second stream overwrites first stream's state.</p>
+    <p><strong>Fix:</strong> <code>const streamMachines = new Map&lt;string, StreamStateMachine&gt;()</code>. Get-or-create machine on every stream_id seen. Fully isolated per stream.</p>
+  </div>
+
+  <div class="bug">
+    <div class="bug-title">🚫 Bug 7 — Global state machine (not per-stream)</div>
+    <p>A corrupt <code>PING</code> with an empty <code>challenge</code> field arrives in chaos mode. Doing <code>JSON.parse(msg.challenge)</code> or truthy checks that skip sending PONG will cause 3 missed PONGs and connection termination.</p>
+    <p><strong>Fix:</strong> <code>const echo = msg.challenge ?? ''</code>. Always send PONG. An empty echo is valid per protocol. Never skip PONG.</p>
+  </div>
+</section>
+
+<!-- ===== 8. BUILD ORDER ===== -->
+<section id="order">
+  <h2>8. Build Order</h2>
+  <p>Build in this exact sequence. Each step is independently testable before the next.</p>
+  <ol class="checklist">
+    <li><span class="step-num">Step 1</span> — <strong>ReorderBuffer</strong> class with unit tests. Test: empty buffer, single element, fully reversed sequence, duplicates, burst of 50 out-of-order. Property test: any permutation of [1..N] emits [1..N] in order.</li>
+    <li><span class="step-num">Step 2</span> — <strong>SlidingDedupWindow</strong> class with unit tests. Test: window eviction by time, duplicate rejection, edge case at window boundary.</li>
+    <li><span class="step-num">Step 3</span> — <strong>Per-stream StreamStateMachine</strong> with TypeScript discriminated unions. Test all valid transitions and confirm invalid transitions are type errors.</li>
+    <li><span class="step-num">Step 4</span> — <strong>Web Worker scaffold</strong>. Receives string payloads, parses JSON, routes to priority/normal queues, sends LogEntry to main thread. Include ArrayBuffer decode as a fallback.</li>
+    <li><span class="step-num">Step 5</span> — <strong>WebSocket connection in main thread</strong>. Forward text-frame <code>event.data</code> to the worker without parsing on the main thread.</li>
+    <li><span class="step-num">Step 6</span> — <strong>ConnectionStateMachine</strong> with jittered exponential backoff. <code>delay = min(500 * 2^attempt, 10000) * (1 + 0.3 * Math.random())</code>.</li>
+    <li><span class="step-num">Step 7</span> — <strong>Event Log</strong> on main thread. Append-only array, receives LogEntry from worker. Subscribe mechanism for views.</li>
+    <li><span class="step-num">Step 8</span> — <strong>Chat View</strong>. Direct DOM mutation for tokens. React for tool cards. One text node per stream_id.</li>
+    <li><span class="step-num">Step 9</span> — <strong>Rendering Orchestrator</strong>. rAF batching, scroll detection, activity awareness, stream_id grouping.</li>
+    <li><span class="step-num">Step 10</span> — <strong>Timeline View</strong>. Virtualized list, token grouping, TOOL_CALL/RESULT visual linking, filter bar.</li>
+    <li><span class="step-num">Step 11</span> — <strong>Context View</strong>. RFC 6902 diff, virtualized tree, lazy expansion for 500KB+, history scrubber.</li>
+    <li><span class="step-num">Step 12</span> — <strong>Full reconnection flow</strong>. Drop → backoff → reconnect → RESUME → replay → dedup → log append → views update. Test with Docker chaos mode.</li>
+    <li><span class="step-num">Step 13</span> — <strong>Chaos mode screen recording</strong>. Label each scenario as it happens. Record 3-5 minutes minimum.</li>
+  </ol>
+</section>
+
+<!-- ===== 9. DECISIONS.MD ===== -->
+<section id="decisions">
+  <h2>9. DECISIONS.md Template</h2>
+
+  <div class="box box-accent">
+    <h4>Opening Paragraph — Use This Verbatim</h4>
+    <p style="font-style:italic;color:var(--text);">"I treated this as an event sourcing problem, not a UI problem. The only mutable state is a single append-only, immutable, seq-ordered event log. Chat, timeline, and context are pure projections of this log. This eliminates the stitching problem entirely — replayed events from RESUME are just more log entries. The rendering orchestrator ensures 60fps under burst load, and the sliding dedup window guarantees bounded memory regardless of session length."</p>
+  </div>
+
+  <h3>Section 1 — Seq-based ordering and deduplication</h3>
+  <div class="box">
+    <ul>
+      <li>Hybrid Map + MinHeap reorder buffer. In-order messages (95% in normal mode) are O(1) — heap never touched. Heap only for out-of-order messages in chaos mode.</li>
+      <li>Sliding time-based dedup window (30s). Not a Set (unbounded). Not count-based (message rate varies). Time-based is proportional to actual session time.</li>
+      <li>Two seq counters: <code>lastReceivedSeq</code> (worker) vs <code>lastRenderedSeq</code> (main thread after DOM commit). RESUME sends <code>lastRenderedSeq</code>.</li>
+    </ul>
+  </div>
+
+  <h3>Section 2 — Preventing layout shift during tool calls</h3>
+  <div class="box">
+    <ul>
+      <li>TextBuffer per stream_id tracks <code>frozenLength</code> at TOOL_CALL moment. Text node is never modified after freezing.</li>
+      <li>Tool card rendered with CSS <code>flex-direction: column</code> — appended after text node in DOM order. No reflowing of existing text.</li>
+      <li>Token appends use <code>textNode.appendData(text)</code> — direct DOM mutation, zero React reconciliation on hot path.</li>
+    </ul>
+  </div>
+
+  <h3>Section 3 — Reconnection state recovery approach</h3>
+  <div class="box">
+    <ul>
+      <li><code>lastRenderedSeq</code> is what the DOM has consumed. Gap between <code>lastReceivedSeq</code> and <code>lastRenderedSeq</code> = messages received but not yet painted. RESUME from <code>lastRenderedSeq</code> ensures these are replayed.</li>
+      <li>Replayed events deduplicated by sliding window before reaching Event Log. No special stitch logic — replays are just more log appends.</li>
+      <li>Dedup window hydrated from sessionStorage (via main thread) on worker restart — prevents duplicate rendering across long connection drops.</li>
+    </ul>
+  </div>
+
+  <h3>Section 4 — 50 concurrent streams scenario</h3>
+  <div class="box">
+    <ul>
+      <li>Per-stream state machines already scale: <code>Map&lt;streamId, StateMachine&gt;</code> is O(1) lookup regardless of stream count.</li>
+      <li>Rendering orchestrator would need viewport-aware priority: streams visible in viewport render at 60fps, off-screen streams throttled.</li>
+      <li>Event Log would need partitioning by stream_id for O(1) view derivation instead of full log scan.</li>
+      <li>At 50 streams: consider SharedArrayBuffer + Atomics for lock-free main-thread/worker communication.</li>
+    </ul>
+  </div>
+
+  <h3>Section 5 — 100x longer responses</h3>
+  <div class="box">
+    <ul>
+      <li>Chat View: token virtualization — render only visible portion of long text nodes (similar to react-virtualized approach but for text).</li>
+      <li>Event Log: sliding window — worker holds full log, main thread only receives recent N entries. Views paginate backward on scroll.</li>
+      <li>Context View: streaming JSON parser (Streams API) for incremental parsing of large snapshots instead of full object load.</li>
+    </ul>
+  </div>
+
+  <h3>Protocol Failure Modes Found (beyond the spec)</h3>
+  <div class="box box-coral">
+    <ul>
+      <li><strong>TOOL_ACK race condition (hinted in spec):</strong> Connection drops after TOOL_CALL but before TOOL_ACK. On reconnect, server replays TOOL_CALL. Client sends TOOL_ACK. But server may have already sent TOOL_RESULT before the drop — TOOL_RESULT arrives before second TOOL_ACK. Tool card stuck in "waiting". Fix: when TOOL_RESULT arrives, if call_id is pending-ack, send TOOL_ACK immediately then apply result.</li>
+      <li><strong>Mid-connection gap — no recovery mechanism (not hinted):</strong> RESUME only works on reconnection. A message genuinely dropped mid-connection has no in-session recovery. Adaptive gap detector accepts the gap after 3× p99 latency, inserts GAP_DETECTED ghost event. Timeline shows it explicitly. The correct but disruptive alternative (trigger reconnection to use RESUME) was rejected for UX reasons — reconnection latency would be worse than the ghost event.</li>
+    </ul>
+  </div>
+</section>
+
+<footer style="margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--border);color:var(--muted);font-size:0.82rem;">
+  <p>Agent Console Implementation Spec · Architecture: One Log, Three Views · June 2026</p>
+  <p>For Codex execution — Next.js 14+ App Router · TypeScript strict mode · No AI streaming libraries</p>
+</footer>
+
+</div>
+</body>
+</html>
