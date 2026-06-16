@@ -1,9 +1,13 @@
 # Recordings
 
-Place the final manual chaos-mode screen recording here as:
+Manual chaos-mode proof recording:
+
+https://youtu.be/BNoWmbYy65A
+
+If an MP4 copy is needed later, place it here as:
 
 ```text
 chaos-mode-proof.mp4
 ```
 
-Alternatively, upload the recording to Loom or YouTube and include the link in the submission email.
+The YouTube link above is the reviewer-facing recording link.

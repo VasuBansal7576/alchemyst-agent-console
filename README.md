@@ -18,7 +18,7 @@ Verified locally against the provided server:
 
 Submission note:
 
-- Record the final chaos proof manually using `docs/manual-live-proof.md`. Save the manual MP4 as `docs/recordings/chaos-mode-proof.mp4` or upload it to Loom/YouTube and include the link in the email body.
+- Manual chaos proof recording: https://youtu.be/BNoWmbYy65A
 
 ## Run The Provided Agent Server
 
@@ -99,11 +99,15 @@ Context inspector with large snapshot diff:
 
 ## Chaos Recording
 
-The final reviewer-facing recording should be a manual live screen recording, not a scripted protocol replay. Follow:
+The final reviewer-facing recording is a manual live screen recording, not a scripted protocol replay:
+
+https://youtu.be/BNoWmbYy65A
+
+The recording workflow is documented here:
 
 [docs/manual-live-proof.md](docs/manual-live-proof.md)
 
-Save the final manual MP4 as:
+If an MP4 copy is needed later, place it at:
 
 ```text
 docs/recordings/chaos-mode-proof.mp4
